@@ -96,7 +96,6 @@ public class CookieUi extends Ui {
     }
 
     private void save() {
-        this.cookieData.updateLastAccessed();
         this.dataManager.save(this.uuid, this.cookieData);
     }
 }

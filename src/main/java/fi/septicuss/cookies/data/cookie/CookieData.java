@@ -5,18 +5,15 @@ import java.util.EnumMap;
 public class CookieData {
 
     private long cookies;
-    private long lastAccessed;
     private final EnumMap<CookieUpgrade, Integer> upgrades;
 
     public CookieData() {
         this.cookies = 0;
-        this.lastAccessed = System.currentTimeMillis();
         this.upgrades = new EnumMap<>(CookieUpgrade.class);
     }
 
-    public CookieData(long cookies, long lastAccessed, EnumMap<CookieUpgrade, Integer> upgrades) {
+    public CookieData(long cookies, EnumMap<CookieUpgrade, Integer> upgrades) {
         this.cookies = cookies;
-        this.lastAccessed = lastAccessed;
         this.upgrades = upgrades;
     }
 
@@ -26,14 +23,6 @@ public class CookieData {
 
     public void setCookies(long cookies) {
         this.cookies = cookies;
-    }
-
-    public long getLastAccessed() {
-        return lastAccessed;
-    }
-
-    public void updateLastAccessed() {
-        this.lastAccessed = System.currentTimeMillis();
     }
 
     public EnumMap<CookieUpgrade, Integer> getUpgrades() {

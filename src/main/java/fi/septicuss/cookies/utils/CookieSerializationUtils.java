@@ -11,7 +11,6 @@ public class CookieSerializationUtils {
 
     public static String serializeToJson(CookieData data) {
         final long cookies = data.getCookies();
-        final long lastAccessed = data.getLastAccessed();
         final EnumMap<CookieUpgrade, Integer> upgrades = data.getUpgrades();
 
         final Json upgradesJson = Json.object();
@@ -23,7 +22,6 @@ public class CookieSerializationUtils {
         return Json.object()
                 .set("cookies", cookies)
                 .set("upgrades", upgradesJson)
-                .set("accessed", lastAccessed)
                 .toString();
     }
 
@@ -35,7 +33,6 @@ public class CookieSerializationUtils {
         final Json object = Json.read(json);
 
         final long cookies = object.at("cookies").asLong();
-        final long lastAccessed = object.has("accessed") ? object.at("accessed").asLong() : 0L;
         final EnumMap<CookieUpgrade, Integer> upgrades = new EnumMap<>(CookieUpgrade.class);
 
         object.at("upgrades")
@@ -44,7 +41,7 @@ public class CookieSerializationUtils {
                         upgrades.put(CookieUpgrade.valueOf(key), Integer.parseInt(value.toString()))
         );
 
-        return new CookieData(cookies, lastAccessed, upgrades);
+        return new CookieData(cookies, upgrades);
     }
 
 }
