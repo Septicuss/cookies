@@ -3,6 +3,7 @@ package fi.septicuss.cookies.ui;
 import fi.septicuss.cookies.data.cookie.CookieData;
 import fi.septicuss.cookies.data.cookie.CookieUpgrade;
 import fi.septicuss.cookies.manager.CookieDataManager;
+import fi.septicuss.cookies.utils.CookieFontUtils;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -31,14 +32,13 @@ public class CookieUi extends Ui {
         this.uuid = uuid;
         this.cookieData = dataManager.get(uuid);
         this.dataManager = dataManager;
-        this.updateTitle(Component.text(cookieData.getCookies()));
+        this.updateTitle(CookieFontUtils.render(cookieData.getCookies()));
     }
 
     @Override
     public void loadItems(Player player) {
         final Inventory inventory = this.getInventory();
 
-        inventory.setItem(0, new ItemStack(Material.DIRT));
     }
 
     @Override
@@ -54,7 +54,7 @@ public class CookieUi extends Ui {
         }
 
         cookieData.setCookies(cookieData.getCookies() + 1);
-        this.updateTitle(Component.text(cookieData.getCookies()));
+        this.updateTitle(CookieFontUtils.render(cookieData.getCookies()));
     }
 
     @Override
@@ -75,7 +75,7 @@ public class CookieUi extends Ui {
         if (wholeCookies > 0) {
             cookieData.setCookies(cookieData.getCookies() + wholeCookies);
             accumulatedCookies -= wholeCookies; // Keep the fraction for next tick
-            this.updateTitle(Component.text(cookieData.getCookies()));
+            this.updateTitle(CookieFontUtils.render(cookieData.getCookies()));
         }
 
         if (timer >= AUTOSAVE_TIME_SECONDS * 20) {
