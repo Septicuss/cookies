@@ -1,0 +1,8 @@
+name: cookies
+version: '1'
+main: fi.septicuss.cookies.CookiePlugin
+api-version: '1.21'
+libraries:
+  - org.xerial:sqlite-jdbc:3.49.1.0
+commands:
+  cookies:
