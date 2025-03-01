@@ -31,7 +31,7 @@ public class CookieBlockUtils {
 
     public static void wipeCookieBlockData(Block block) {
         final CustomBlockData data = new CustomBlockData(block, CookiePlugin.getInstance());
-
+        data.remove(COOKIE_ID_KEY);
     }
 
 }
