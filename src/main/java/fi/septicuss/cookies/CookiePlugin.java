@@ -1,5 +1,6 @@
 package fi.septicuss.cookies;
 
+import com.github.retrooper.packetevents.PacketEvents;
 import com.jeff_media.customblockdata.CustomBlockData;
 import fi.septicuss.cookies.command.CookiesCommand;
 import fi.septicuss.cookies.data.CookieDatabase;
@@ -64,6 +65,7 @@ public final class CookiePlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         this.uiManager.closeAll();
+        this.titleHandler.uninitialize();
     }
 
     private void registerEvents() {

@@ -2,9 +2,11 @@ package fi.septicuss.cookies.ui.title;
 
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.event.PacketListener;
+import com.github.retrooper.packetevents.event.PacketListenerCommon;
 import com.github.retrooper.packetevents.event.PacketListenerPriority;
 import com.github.retrooper.packetevents.event.PacketReceiveEvent;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
+import com.github.retrooper.packetevents.protocol.component.ComponentTypes;
 import com.github.retrooper.packetevents.protocol.item.ItemStack;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.protocol.player.User;
@@ -12,67 +14,71 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerBu
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerOpenWindow;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerWindowItems;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
 
-import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class TitleHandler implements PacketListener {
 
-    private record WindowData(int windowId, int containerType) { }
-
-    private record WindowItemData(int windowId, int stateID, List<ItemStack> items, ItemStack carriedItem) {
-        public WrapperPlayServerWindowItems wrapper() {
-            return new WrapperPlayServerWindowItems(windowId, stateID, items, carriedItem);
-        }
-    }
-
     private static final int GENERIC_6_ROW_TYPE = 5;
-    private final HashMap<UUID, WindowData> windowData;
-    private final HashMap<UUID, Component> titleQueue;
-    private final HashMap<UUID, WindowItemData> itemsQueue;
+    private final ConcurrentHashMap<UUID, WindowData> windowData;
+    private final ConcurrentHashMap<UUID, Component> titleQueue;
+    private final ConcurrentHashMap<Integer, WindowItemData> itemsData;
+    private PacketListenerCommon packetListenerCommon;
 
     public TitleHandler() {
-        this.windowData = new HashMap<>();
-        this.titleQueue = new HashMap<>();
-        this.itemsQueue = new HashMap<>();
+        this.windowData = new ConcurrentHashMap<>();
+        this.titleQueue = new ConcurrentHashMap<>();
+        this.itemsData = new ConcurrentHashMap<>();
     }
 
     public void initialize() {
-        PacketEvents.getAPI().getEventManager().registerListener(this, PacketListenerPriority.MONITOR);
+        packetListenerCommon = PacketEvents.getAPI().getEventManager().registerListener(this, PacketListenerPriority.MONITOR);
+    }
+
+    public void uninitialize() {
+        if (packetListenerCommon != null) {
+            PacketEvents.getAPI().getEventManager().unregisterListener(packetListenerCommon);
+        }
     }
 
     @Override
     public void onPacketSend(PacketSendEvent event) {
-        if (event.getPacketType() != PacketType.Play.Server.OPEN_WINDOW) {
-            if (event.getPacketType() == PacketType.Play.Server.WINDOW_ITEMS) {
-                if (windowData.containsKey(event.getUser().getUUID())) {
-                    if (itemsQueue.containsKey(event.getUser().getUUID())) {
-                        return;
-                    }
-                    var items = new WrapperPlayServerWindowItems(event);
-                    this.itemsQueue.put(event.getUser().getUUID(), new WindowItemData(items.getWindowId(), items.getStateId(), items.getItems(), items.getCarriedItem().orElse(null)));
-                }
+        // Intercept open window
+        if (event.getPacketType() == PacketType.Play.Server.OPEN_WINDOW) {
+            final WrapperPlayServerOpenWindow openWindow = new WrapperPlayServerOpenWindow(event);
+
+            if (openWindow.getType() != GENERIC_6_ROW_TYPE) {
+                return;
             }
+
+            final UUID uuid = event.getUser().getUUID();
+
+            if (titleQueue.containsKey(uuid)) {
+                openWindow.setTitle(titleQueue.get(uuid));
+                titleQueue.remove(uuid);
+            }
+
+            windowData.put(uuid, new WindowData(openWindow.getContainerId(), openWindow.getType()));
             return;
         }
 
-        final WrapperPlayServerOpenWindow openWindow = new WrapperPlayServerOpenWindow(event);
+        // Intercept item update
+        if (event.getPacketType() == PacketType.Play.Server.WINDOW_ITEMS) {
+            final UUID uuid = event.getUser().getUUID();
 
-        if (openWindow.getType() != GENERIC_6_ROW_TYPE) {
-            return;
+            if (!windowData.containsKey(uuid)) {
+                return;
+            }
+
+            final WrapperPlayServerWindowItems items = new WrapperPlayServerWindowItems(event);
+            this.itemsData.put(items.getWindowId(), new WindowItemData(items.getWindowId(), items.getStateId(), items.getItems(), items.getCarriedItem().orElse(null)));
         }
-
-        final UUID uuid = event.getUser().getUUID();
-
-        if (titleQueue.containsKey(uuid)) {
-            openWindow.setTitle(titleQueue.get(uuid));
-            titleQueue.remove(uuid);
-        }
-
-        windowData.put(uuid, new WindowData(openWindow.getContainerId(), openWindow.getType()));
     }
 
     @Override
@@ -83,9 +89,24 @@ public class TitleHandler implements PacketListener {
 
         final UUID uuid = event.getUser().getUUID();
 
+        WindowData removedData = windowData.remove(uuid);
         titleQueue.remove(uuid);
-        windowData.remove(uuid);
-        itemsQueue.remove(uuid);
+
+        if (removedData != null) {
+            boolean foundItemUse = false;
+
+            for (WindowData data : this.windowData.values()) {
+                if (data.windowId == removedData.windowId()) {
+                    foundItemUse = true;
+                }
+            }
+
+            if (!foundItemUse) {
+                itemsData.remove(removedData.windowId());
+            }
+
+        }
+
     }
 
     public void setPlayerInventoryTitle(Player player, Component title) {
@@ -118,13 +139,41 @@ public class TitleHandler implements PacketListener {
         user.sendPacket(bundle);
         user.sendPacket(openWindow);
 
-        if (this.itemsQueue.containsKey(player.getUniqueId())) {
-            final WrapperPlayServerWindowItems items = this.itemsQueue.get(player.getUniqueId()).wrapper();
+        if (this.itemsData.containsKey(windowId)) {
+            final WrapperPlayServerWindowItems items = this.itemsData.get(windowId).wrapper();
             user.sendPacket(items);
-            PacketEvents.getAPI().getPlayerManager().sendPacket(player, this.itemsQueue.get(player.getUniqueId()).wrapper());
         }
 
         user.sendPacket(bundle);
+    }
+
+    private String debug(List<ItemStack> items) {
+
+        StringBuilder builder = new StringBuilder();
+
+        for (var item : items) {
+            Optional<Component> componentOpt = item.getComponent(ComponentTypes.ITEM_NAME);
+            componentOpt.ifPresent(component -> {
+                if (component instanceof TextComponent text) {
+                    builder.append(text.content());
+                    for (var ch : component.children()) {
+                        if (ch instanceof TextComponent t1)
+                            builder.append(t1.content());
+                    }
+                    builder.append(";");
+                }
+            });
+        }
+        return builder.toString();
+    }
+
+    private record WindowData(int windowId, int containerType) {
+    }
+
+    private record WindowItemData(int windowId, int stateID, List<ItemStack> items, ItemStack carriedItem) {
+        public WrapperPlayServerWindowItems wrapper() {
+            return new WrapperPlayServerWindowItems(windowId, stateID, items, carriedItem);
+        }
     }
 
 }

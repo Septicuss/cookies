@@ -1,28 +1,29 @@
 package fi.septicuss.cookies.data.cookie;
 
 import java.util.EnumMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class CookieData {
 
-    private long cookies;
+    private final AtomicLong cookies;
     private final EnumMap<CookieUpgrade, Integer> upgrades;
 
     public CookieData() {
-        this.cookies = 0;
+        this.cookies = new AtomicLong(0);
         this.upgrades = new EnumMap<>(CookieUpgrade.class);
     }
 
     public CookieData(long cookies, EnumMap<CookieUpgrade, Integer> upgrades) {
-        this.cookies = cookies;
+        this.cookies = new AtomicLong(cookies);
         this.upgrades = upgrades;
     }
 
     public long getCookies() {
-        return cookies;
+        return cookies.get();
     }
 
     public void setCookies(long cookies) {
-        this.cookies = cookies;
+        this.cookies.set(cookies);
     }
 
     public EnumMap<CookieUpgrade, Integer> getUpgrades() {

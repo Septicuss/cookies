@@ -37,8 +37,11 @@ public class CookieSerializationUtils {
 
         object.at("upgrades")
                 .asMap()
-                .forEach((key, value) ->
-                        upgrades.put(CookieUpgrade.valueOf(key), Integer.parseInt(value.toString()))
+                .forEach((key, value) -> {
+                    for (CookieUpgrade upgrade : CookieUpgrade.values())
+                        if (upgrade.name().equals(key.toUpperCase()))
+                            upgrades.put(CookieUpgrade.valueOf(key), Integer.parseInt(value.toString()));
+                }
         );
 
         return new CookieData(cookies, upgrades);

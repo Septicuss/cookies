@@ -66,6 +66,7 @@ public class CookieBlockManager {
 
         final Ui ui = new CookieUi(plugin.getCookieDataManager(), cookieUuid);
         uiManager.trackUi(ui);
+        ui.open(player);
     }
 
     public void closeUi(Player player, UUID cookieUuid) {

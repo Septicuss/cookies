@@ -72,6 +72,7 @@ public class UiManager {
         final Set<HumanEntity> viewers = new HashSet<>();
         this.trackedUis.forEach(ui -> {
             viewers.addAll(ui.getInventory().getViewers());
+            ui.closeEvent(null);
         });
         viewers.forEach(HumanEntity::closeInventory);
     }

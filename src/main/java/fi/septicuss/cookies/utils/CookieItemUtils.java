@@ -9,6 +9,7 @@ import java.util.UUID;
 
 public class CookieItemUtils {
 
+    public static final NamespacedKey EMPTY_COOKIE_ITEM = new NamespacedKey("cookies", "empty");
     private static final NamespacedKey COOKIE_ID_KEY = new NamespacedKey("cookies", "id");
     private static final NamespacedKey COOKIE_EMPTY_KEY = new NamespacedKey("cookies", "e");
 

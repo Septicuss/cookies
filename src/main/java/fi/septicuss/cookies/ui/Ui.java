@@ -19,6 +19,10 @@ public abstract class Ui {
     }
 
     public void updateTitle(Component title) {
+        if (title.equals(this.title)) {
+            return;
+        }
+
         this.title = title;
         this.inventory.getViewers().forEach(viewer -> {
             if (viewer instanceof Player player) {
@@ -27,12 +31,15 @@ public abstract class Ui {
         });
     }
 
+    public Component getTitle() {
+        return title;
+    }
+
     public void open(Player player) {
         if (this.title != null) {
             CookiePlugin.getInstance().getTitleHandler().queueTitle(player, this.title);
         }
-
-        this.loadItems(player);
+        loadItems();
         player.openInventory(this.inventory);
     }
 
@@ -44,7 +51,7 @@ public abstract class Ui {
 
     public boolean isTickable() { return false; }
 
-    public void loadItems(Player player) {};
+    public void loadItems() {};
 
     public void clickEvent(InventoryClickEvent event) {};
 
