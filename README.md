@@ -21,6 +21,9 @@ This plugin was created as part of a code challenge. The task was:
 - Title and item updates are handled by intercepting, modifying and sending window packets using **packetevents**.
 - Saved using a key-value store, with the key being a UUID and value being JSON. Currently using SQLite, but extensibility through an interface is possible.
 
-## Screenshot
+## Showcase
 
 ![image](https://github.com/user-attachments/assets/09f65bc4-6fbd-4f54-b264-0f05b7659ae4)
+
+https://github.com/user-attachments/assets/6049867e-f672-486d-b84e-cd8b97195dbc
+
