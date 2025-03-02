@@ -114,10 +114,10 @@ public class CookieFontUtils {
     }
 
     private static FontElement number(long cookies) {
-        final int prefixOffset = 102;
         final String numberString = formatNumber(cookies);
-        final int width = prefixOffset + width(numberString);
-        return new FontElement(offset(prefixOffset) + numberString, width);
+        final int width = width(numberString);
+        final int prefixOffset = 164 - width;
+        return new FontElement(offset(prefixOffset) + numberString, prefixOffset + width);
     }
 
     private static FontElement upgrades(boolean first, boolean second, boolean third) {
