@@ -17,24 +17,22 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 public class CookieUi extends Ui {
 
+    private static final Set<Integer> BUTTON_SLOTS = Set.of(21, 22, 23, 30, 31, 32, 39, 40, 41);
     private static final int AUTOSAVE_TIME_SECONDS = 60;
-    private static final Set<Integer> SLOTS = Collections.unmodifiableSet(Set.of(21, 22, 23, 30, 31, 32, 39, 40, 41));
 
     private final UUID uuid;
     private final CookieData cookieData;
     private final CookieDataManager dataManager;
 
-    private boolean dirty = false;
     private int timer;
+    private boolean dirty = false;
     private double accumulatedCookies = 0;
-
 
     public CookieUi(CookieDataManager dataManager, UUID uuid) {
         super(6);
@@ -66,56 +64,45 @@ public class CookieUi extends Ui {
         inventory.setItem(6, stats);
         inventory.setItem(5, stats);
         inventory.setItem(4, stats);
-
     }
 
     @Override
     public void clickEvent(InventoryClickEvent event) {
+        event.setCancelled(true);
+
         if (event.getClick() == ClickType.DOUBLE_CLICK) {
             return;
         }
 
-        event.setCancelled(true);
-
         final int slot = event.getSlot();
 
+        // -- Upgrades --
+
         if (slot == 18 || slot == 19) {
-            if (!canAfford(CookieUpgrade.BISCUIT)) {
-                return;
-            }
-            cookieData.setCookies(cookieData.getCookies() - this.getPrice(CookieUpgrade.BISCUIT));
-            cookieData.addUpgrade(CookieUpgrade.BISCUIT);
-            dirty = true;
+            this.attemptPurchase(CookieUpgrade.BISCUIT);
         }
 
         if (slot == 27 || slot == 28) {
-            if (!canAfford(CookieUpgrade.OVEN)) {
-                return;
-            }
-            cookieData.setCookies(cookieData.getCookies() - this.getPrice(CookieUpgrade.OVEN));
-            cookieData.addUpgrade(CookieUpgrade.OVEN);
-            dirty = true;
+            this.attemptPurchase(CookieUpgrade.OVEN);
         }
 
         if (slot == 36 || slot == 37) {
-            if (!canAfford(CookieUpgrade.FACTORY)) {
-                return;
-            }
-            cookieData.setCookies(cookieData.getCookies() - this.getPrice(CookieUpgrade.FACTORY));
-            cookieData.addUpgrade(CookieUpgrade.FACTORY);
-            dirty = true;
+            this.attemptPurchase(CookieUpgrade.FACTORY);
         }
 
-        if (SLOTS.contains(slot)) {
+        // -- Cookie Button --
+
+        if (BUTTON_SLOTS.contains(slot)) {
             cookieData.setCookies(cookieData.getCookies() + 1);
             this.updateTitle(CookieFontUtils.render(cookieData));
-            this.dirty = true;
+            this.markDirty();
         }
     }
 
     @Override
     public void closeEvent(InventoryCloseEvent event) {
         final boolean lastViewer = getInventory().getViewers().size() <= 1;
+
         if (lastViewer) {
             this.save();
         }
@@ -133,9 +120,11 @@ public class CookieUi extends Ui {
             this.updateTitle(CookieFontUtils.render(cookieData));
         }
 
+        // Reload & re-send items
         if (dirty) {
             this.loadItems();
 
+            // Triggers a container content update packet, which we cache later
             for (HumanEntity entity : this.getInventory().getViewers()) {
                 if (entity instanceof Player player) {
                     player.updateInventory();
@@ -148,20 +137,32 @@ public class CookieUi extends Ui {
 
         // Update once in a while, so that items may get updated.
         if (timer % 20 == 0) {
-            this.dirty = true;
+            markDirty();
         }
 
-        if (timer >= AUTOSAVE_TIME_SECONDS * 20) {
+        // Autosave
+        final int autosaveTimeTicks = AUTOSAVE_TIME_SECONDS * 20;
+        if (timer >= autosaveTimeTicks) {
             this.save();
             this.timer = 0;
-        } else {
-            this.timer++;
+            return;
         }
+
+        this.timer++;
     }
 
     @Override
     public boolean isTickable() {
         return true;
+    }
+
+    private void attemptPurchase(CookieUpgrade upgrade) {
+        if (!canAfford(upgrade)) {
+            return;
+        }
+        cookieData.setCookies(cookieData.getCookies() - this.getPrice(upgrade));
+        cookieData.addUpgrade(upgrade);
+        markDirty();
     }
 
     private ItemStack statsItems() {
@@ -205,6 +206,10 @@ public class CookieUi extends Ui {
 
     private boolean canAfford(CookieUpgrade upgrade) {
         return cookieData.getCookies() >= this.getPrice(upgrade);
+    }
+
+    public void markDirty() {
+        this.dirty = true;
     }
 
     public UUID getUuid() {

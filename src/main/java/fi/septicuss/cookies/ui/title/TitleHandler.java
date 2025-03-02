@@ -6,7 +6,6 @@ import com.github.retrooper.packetevents.event.PacketListenerCommon;
 import com.github.retrooper.packetevents.event.PacketListenerPriority;
 import com.github.retrooper.packetevents.event.PacketReceiveEvent;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
-import com.github.retrooper.packetevents.protocol.component.ComponentTypes;
 import com.github.retrooper.packetevents.protocol.item.ItemStack;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.protocol.player.User;
@@ -14,12 +13,10 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerBu
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerOpenWindow;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerWindowItems;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TextComponent;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -89,24 +86,9 @@ public class TitleHandler implements PacketListener {
 
         final UUID uuid = event.getUser().getUUID();
 
-        WindowData removedData = windowData.remove(uuid);
         titleQueue.remove(uuid);
-
-        if (removedData != null) {
-            boolean foundItemUse = false;
-
-            for (WindowData data : this.windowData.values()) {
-                if (data.windowId == removedData.windowId()) {
-                    foundItemUse = true;
-                }
-            }
-
-            if (!foundItemUse) {
-                itemsData.remove(removedData.windowId());
-            }
-
-        }
-
+        WindowData removedData = windowData.remove(uuid);
+        if (removedData != null) this.disposeOfWindowItems(removedData.windowId());
     }
 
     public void setPlayerInventoryTitle(Player player, Component title) {
@@ -126,10 +108,6 @@ public class TitleHandler implements PacketListener {
         this.sendOpenScreenPacket(player, windowId, containerType, title);
     }
 
-    public void queueTitle(Player player, Component title) {
-        this.titleQueue.put(player.getUniqueId(), title);
-    }
-
     private void sendOpenScreenPacket(Player player, int windowId, int containerType, Component title) {
         final User user = PacketEvents.getAPI().getPlayerManager().getUser(player);
 
@@ -147,28 +125,27 @@ public class TitleHandler implements PacketListener {
         user.sendPacket(bundle);
     }
 
-    private String debug(List<ItemStack> items) {
+    private void disposeOfWindowItems(int windowId) {
+        boolean itemsUsedElsewhere = false;
 
-        StringBuilder builder = new StringBuilder();
-
-        for (var item : items) {
-            Optional<Component> componentOpt = item.getComponent(ComponentTypes.ITEM_NAME);
-            componentOpt.ifPresent(component -> {
-                if (component instanceof TextComponent text) {
-                    builder.append(text.content());
-                    for (var ch : component.children()) {
-                        if (ch instanceof TextComponent t1)
-                            builder.append(t1.content());
-                    }
-                    builder.append(";");
-                }
-            });
+        for (WindowData data : this.windowData.values()) {
+            if (data.windowId == windowId) {
+                itemsUsedElsewhere = true;
+                break;
+            }
         }
-        return builder.toString();
+
+        if (!itemsUsedElsewhere) {
+            itemsData.remove(windowId);
+        }
     }
 
-    private record WindowData(int windowId, int containerType) {
+    public void queueTitle(Player player, Component title) {
+        this.titleQueue.put(player.getUniqueId(), title);
     }
+
+
+    private record WindowData(int windowId, int containerType) {}
 
     private record WindowItemData(int windowId, int stateID, List<ItemStack> items, ItemStack carriedItem) {
         public WrapperPlayServerWindowItems wrapper() {

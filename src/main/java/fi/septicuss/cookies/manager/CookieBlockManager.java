@@ -11,7 +11,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public class CookieBlockManager {
@@ -32,10 +35,6 @@ public class CookieBlockManager {
         this.plugin = plugin;
     }
 
-    public ItemStack getCookieBlockItem() {
-        return CookieItemUtils.setEmptyItemSignature(COOKIE_BLOCK_ITEM.clone());
-    }
-
     public ItemStack getCookieBlockItem(UUID cookieUuid) {
         final CookieData cookieData = plugin.getCookieDataManager().get(cookieUuid);
         if (cookieData == null) return getCookieBlockItem();
@@ -54,14 +53,12 @@ public class CookieBlockManager {
     public void openCookieUi(Player player, UUID cookieUuid) {
         final UiManager uiManager = plugin.getUiManager();
 
-        for (Ui ui : uiManager.getTrackedUis()) {
-            if (ui instanceof CookieUi cookieUi) {
-                if (cookieUi.getUuid().equals(cookieUuid)) {
-                    cookieUi.open(player);
-                    return;
-                }
+        final Set<CookieUi> existingUis = this.findCookieUis(cookieUuid);
+        if (!existingUis.isEmpty()) {
+            for (CookieUi ui : existingUis) {
+                ui.open(player);
+                return;
             }
-
         }
 
         final Ui ui = new CookieUi(plugin.getCookieDataManager(), cookieUuid);
@@ -69,19 +66,26 @@ public class CookieBlockManager {
         ui.open(player);
     }
 
-    public void closeUi(Player player, UUID cookieUuid) {
+    private Set<CookieUi> findCookieUis(UUID cookieUuid) {
+        final Set<CookieUi> resultSet = new HashSet<>();
         final UiManager uiManager = plugin.getUiManager();
-
         for (Ui ui : uiManager.getTrackedUis()) {
             if (ui instanceof CookieUi cookieUi) {
                 if (cookieUi.getUuid().equals(cookieUuid)) {
-
+                    resultSet.add(cookieUi);
                 }
             }
         }
+        return Collections.unmodifiableSet(resultSet);
     }
 
+    public void closeUi(UUID cookieUuid) {
+        this.findCookieUis(cookieUuid).forEach(cookieUi -> this.plugin.getUiManager().closeAndDispose(cookieUi));
+    }
 
+    public ItemStack getCookieBlockItem() {
+        return CookieItemUtils.setEmptyItemSignature(COOKIE_BLOCK_ITEM.clone());
+    }
 
 
 }

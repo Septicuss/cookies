@@ -1,11 +1,9 @@
 package fi.septicuss.cookies.listener;
 
 import com.jeff_media.customblockdata.events.CustomBlockDataRemoveEvent;
-import fi.septicuss.cookies.CookiePlugin;
 import fi.septicuss.cookies.manager.CookieBlockManager;
 import fi.septicuss.cookies.utils.CookieBlockUtils;
 import fi.septicuss.cookies.utils.CookieItemUtils;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
@@ -77,6 +75,7 @@ public class CookieBlockListener implements Listener {
     }
 
     private void handleBreakCookieBlock(Block block, UUID uuid) {
+        this.manager.closeUi(uuid);
         block.getDrops().clear();
         block.getWorld().dropItemNaturally(block.getLocation().clone().add(0.5, 0.5, 0.5), this.manager.getCookieBlockItem(uuid));
 

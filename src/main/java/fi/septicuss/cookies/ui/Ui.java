@@ -31,10 +31,6 @@ public abstract class Ui {
         });
     }
 
-    public Component getTitle() {
-        return title;
-    }
-
     public void open(Player player) {
         if (this.title != null) {
             CookiePlugin.getInstance().getTitleHandler().queueTitle(player, this.title);
@@ -45,6 +41,10 @@ public abstract class Ui {
 
     public Inventory getInventory() {
         return this.inventory;
+    }
+
+    public Component getTitle() {
+        return title;
     }
 
     public void tick() {}

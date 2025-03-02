@@ -32,26 +32,16 @@ public final class CookiePlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
-
         instance = this;
 
-        final File databaseFile = new File(this.getDataFolder(), "data.sqlite");
-        if (!databaseFile.exists()) {
-            databaseFile.getParentFile().mkdirs();
-            try {
-                databaseFile.createNewFile();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
+        final File databaseFile = this.getDatabaseFile();
         final CookieDatabase database = new SQLiteCookieDatabase(databaseFile.getAbsolutePath());
         database.initialize();
 
-        this.titleHandler = new TitleHandler();
         this.uiManager = new UiManager(this);
-        this.cookieBlockManager = new CookieBlockManager(this);
+        this.titleHandler = new TitleHandler();
         this.cookieDataManager = new CookieDataManager(database);
+        this.cookieBlockManager = new CookieBlockManager(this);
 
         this.titleHandler.initialize();
         this.uiManager.initialize();
@@ -68,11 +58,6 @@ public final class CookiePlugin extends JavaPlugin {
         this.titleHandler.uninitialize();
     }
 
-    private void registerEvents() {
-        getServer().getPluginManager().registerEvents(new UiListener(this.uiManager), this);
-        getServer().getPluginManager().registerEvents(new CookieBlockListener(this.cookieBlockManager), this);
-    }
-
     private void registerCommand() {
         final CookiesCommand command = new CookiesCommand(this.cookieBlockManager);
         final PluginCommand pluginCommand = this.getCommand("cookies");
@@ -81,12 +66,35 @@ public final class CookiePlugin extends JavaPlugin {
         pluginCommand.setTabCompleter(command);
     }
 
-    public UiManager getUiManager() {
-        return uiManager;
+    private void registerEvents() {
+        final var pluginManager = getServer().getPluginManager();
+        pluginManager.registerEvents(new UiListener(this.uiManager), this);
+        pluginManager.registerEvents(new CookieBlockListener(this.cookieBlockManager), this);
+    }
+
+    private File getDatabaseFile() {
+        final File databaseFile = new File(this.getDataFolder(), "data.sqlite");
+        if (!databaseFile.exists()) {
+            databaseFile.getParentFile().mkdirs();
+            try {
+                databaseFile.createNewFile();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return databaseFile;
+    }
+
+    public CookieBlockManager getCookieBlockManager() {
+        return cookieBlockManager;
     }
 
     public CookieDataManager getCookieDataManager() {
         return cookieDataManager;
+    }
+
+    public UiManager getUiManager() {
+        return uiManager;
     }
 
     public TitleHandler getTitleHandler() {
