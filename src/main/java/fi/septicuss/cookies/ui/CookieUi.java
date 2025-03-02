@@ -193,8 +193,8 @@ public class CookieUi extends Ui {
 
         meta.setItemName(purchaseColor + upgradeName + " Upgrade");
         meta.setItemModel(CookieItemUtils.EMPTY_COOKIE_ITEM);
-        item.setItemMeta(meta);
         meta.setLore(lore);
+        item.setItemMeta(meta);
         return item;
     }
 
